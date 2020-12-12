@@ -1,0 +1,8 @@
+version: '3'
+services:
+  readlogs:
+    build: .
+    volumes:
+      - test_log_files:/log
+    ports:
+      - 8082:8082

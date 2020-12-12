@@ -1,23 +1,33 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"log_reader/readlogs"
 	"log_reader/sanitize"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/valyala/fasthttp"
 )
 
+// Simple helper function to read an environment or return a default value
+func getEnv(key string, defaultVal string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+
+	return defaultVal
+}
+
 var (
-	addr     = flag.String("addr", ":8082", "TCP address to listen to")
-	compress = flag.Bool("compress", true, "Whether to enable transparent response compression")
+	addr       = getEnv("addr", ":8082")
+	logdir     = getEnv("log_dir", "./test_log_files")
+	filesuffix = getEnv("suffix", "log")
 )
 
 func main() {
-	flag.Parse()
 
 	h := func(ctx *fasthttp.RequestCtx) {
 
@@ -31,12 +41,9 @@ func main() {
 		requestHandler(ctx)
 	}
 
-	// h := requestHandler
-	if *compress {
-		h = fasthttp.CompressHandler(h)
-	}
+	h = fasthttp.CompressHandler(h)
 
-	if err := fasthttp.ListenAndServe(*addr, h); err != nil {
+	if err := fasthttp.ListenAndServe(addr, h); err != nil {
 		log.Fatalf("Error in ListenAndServe: %s", err)
 	}
 }
@@ -45,9 +52,11 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 
 	fileID := ctx.Request.Header.Peek("X-Id")
 
-	fileName := sanitize.BaseName(string(fileID)) + ".log"
+	fileName := sanitize.BaseName(string(fileID)) + "." + filesuffix
 
+	fileName = filepath.Join(logdir, fileName)
 	log.Println(fileName)
+
 	seekTo, err := strconv.ParseInt(string(ctx.Request.Header.Peek("X-Seek")), 10, 0)
 
 	if err != nil {
