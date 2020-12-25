@@ -25,20 +25,32 @@ var (
 	addr       = getEnv("addr", ":8082")
 	logdir     = getEnv("log_dir", "./test_log_files")
 	filesuffix = getEnv("suffix", "log")
+	fileprefix = getEnv("prefix", "filewatchdog")
 )
 
 func main() {
 
 	h := func(ctx *fasthttp.RequestCtx) {
 
+		setCorsHeaders(ctx)
+
 		defer func() {
 			if r := recover(); r != nil {
 				log.Println("Somethig webt wron", r)
-				ctx.Error("Error reading logs", 403)
+				setCorsHeaders(ctx)
+
+				// ctx.Request.Body("Error reading logs", 200)
 
 			}
 		}()
-		requestHandler(ctx)
+
+		if ctx.IsGet() {
+			requestHandler(ctx)
+
+		} else {
+
+		}
+
 	}
 
 	h = fasthttp.CompressHandler(h)
@@ -48,11 +60,18 @@ func main() {
 	}
 }
 
+func setCorsHeaders(ctx *fasthttp.RequestCtx) {
+	ctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
+	ctx.Response.Header.Set("Access-Control-Allow-Headers", "*")
+	ctx.Response.Header.Set("Access-Control-Allow-Methods", "DELETE, POST, GET, OPTIONS")
+
+}
+
 func requestHandler(ctx *fasthttp.RequestCtx) {
 
 	fileID := ctx.Request.Header.Peek("X-Id")
 
-	fileName := sanitize.BaseName(string(fileID)) + "." + filesuffix
+	fileName := fileprefix + "." + sanitize.BaseName(string(fileID)) + "." + filesuffix
 
 	fileName = filepath.Join(logdir, fileName)
 	log.Println(fileName)

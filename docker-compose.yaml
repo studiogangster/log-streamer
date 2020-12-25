@@ -1,8 +1,12 @@
 version: '3'
 services:
-  readlogs:
+  log_reader:
     build: .
+    environment:
+      - addr=0.0.0.0:80
+      - log_dir=/log
+      - suffix=log
     volumes:
-      - test_log_files:/log
+      - ./test_log_files:/log
     ports:
-      - 8082:8082
+      - 8082:80

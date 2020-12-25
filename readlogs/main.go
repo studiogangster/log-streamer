@@ -28,16 +28,18 @@ func StreamFile(filePath string, seekByte int64, maxLineCount int64) ([]byte, in
 	var currentLine int64 = 0
 	for scanner.Scan() {
 
-		if currentLine >= maxLineCount {
-			break
-		}
-
 		l := scanner.Bytes()
 
-		bytesCount += len(l) + 1
+		bytesCount += len(l)
 		block = append(block, l...)
-		block = append(block, "\n"...)
 		currentLine++
+
+		if currentLine >= maxLineCount {
+			break
+		} else {
+			block = append(block, "\n"...)
+			bytesCount++
+		}
 
 	}
 
