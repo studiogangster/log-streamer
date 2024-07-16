@@ -30,6 +30,12 @@ var (
 
 func main() {
 
+	// content, err := readlogs.Read("secoflex-localized-logs/watchdog.cortx.nucleus/log_", 5, 20000, false)
+	content, err := readlogs.Read("secoflex-localized-logs/watchdog.6696ddea59f1fb1cd57d885a/log_", 5, 20000, false)
+
+	log.Println(string(content), err)
+	return
+
 	h := func(ctx *fasthttp.RequestCtx) {
 
 		setCorsHeaders(ctx)
