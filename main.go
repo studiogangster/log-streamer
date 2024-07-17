@@ -107,7 +107,7 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	// buffer, startByte, endByte, fileSize := readlogs.StreamFile(fileName, seekTo, maxLineCount)
 
 	buffer, fileSize, err := readlogs.Read(logdir+"/watchdog."+fileID+"/log_", seekTo, maxLineCount, false)
-	log.Println(string(buffer), fileSize, err)
+	log.Println(fileSize, err)
 
 	fmt.Fprintf(ctx, string(buffer))
 	ctx.SetContentType("text/plain; charset=utf8")
