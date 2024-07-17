@@ -9,18 +9,19 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/joho/godotenv"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"golang.org/x/net/context"
 )
 
-func Read(prefix string, offset int64, length int64, latestFirst bool) ([]byte, error) {
+func Read(prefix string, offset int64, length int64, latestFirst bool) ([]byte, int64, error) {
 	// Load environment variables from .env file (optional)
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-	}
+	log.Println(
+		prefix,
+		offset,
+		length,
+		latestFirst,
+	)
 
 	// Read environment variables
 	minioURL := os.Getenv("MINIOURL")
@@ -33,7 +34,7 @@ func Read(prefix string, offset int64, length int64, latestFirst bool) ([]byte, 
 	// Parse MINIO_SECURE environment variable to boolean
 	isSecure, err := strconv.ParseBool(isSecureStr)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing MINIO_SECURE: %v", err)
+		return nil, 0, fmt.Errorf("error parsing MINIO_SECURE: %v", err)
 	}
 
 	// Initialize MinIO client
@@ -43,7 +44,7 @@ func Read(prefix string, offset int64, length int64, latestFirst bool) ([]byte, 
 		Region: minioRegion,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error initializing MinIO client: %v", err)
+		return nil, 0, fmt.Errorf("error initializing MinIO client: %v", err)
 	}
 
 	// List objects in the bucket with the given prefix
@@ -57,7 +58,7 @@ func Read(prefix string, offset int64, length int64, latestFirst bool) ([]byte, 
 	var objects []minio.ObjectInfo
 	for object := range objectCh {
 		if object.Err != nil {
-			return nil, fmt.Errorf("error listing objects: %v", object.Err)
+			return nil, 0, fmt.Errorf("error listing objects: %v", object.Err)
 		}
 		objects = append(objects, object)
 	}
@@ -78,10 +79,13 @@ func Read(prefix string, offset int64, length int64, latestFirst bool) ([]byte, 
 	var concatenatedContent []byte
 	var currentOffset int64
 
+	var totalSize int64 = 0
+
 	// Iterate over sorted objects to find and concatenate content within offset and length
 	for _, obj := range objects {
 		extractSeqNo(obj.Key, prefix)
 		objectSize := obj.Size
+		totalSize += objectSize
 
 		// Check if current object contributes to the offset and length range
 		if currentOffset < offset+length && currentOffset+objectSize > offset {
@@ -101,14 +105,14 @@ func Read(prefix string, offset int64, length int64, latestFirst bool) ([]byte, 
 			// Retrieve object content within the specified range
 			objectContent, err := minioClient.GetObject(ctx, minioBucket, obj.Key, getObjOptions)
 			if err != nil {
-				return nil, fmt.Errorf("error retrieving object %s: %v", obj.Key, err)
+				return nil, 0, fmt.Errorf("error retrieving object %s: %v", obj.Key, err)
 			}
 
 			// Read and append object content to the concatenated content
 			objectBytes, err := io.ReadAll(objectContent)
 			objectContent.Close()
 			if err != nil {
-				return nil, fmt.Errorf("error reading object %s content: %v", obj.Key, err)
+				return nil, 0, fmt.Errorf("error reading object %s content: %v", obj.Key, err)
 			}
 
 			concatenatedContent = append(concatenatedContent, objectBytes...)
@@ -123,7 +127,7 @@ func Read(prefix string, offset int64, length int64, latestFirst bool) ([]byte, 
 		}
 	}
 
-	return concatenatedContent, nil
+	return concatenatedContent, totalSize, nil
 }
 
 // extractSeqNo extracts the sequential number from a file name.
