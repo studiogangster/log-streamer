@@ -5,6 +5,22 @@ Easily stream, preview, and monitor logs in real-time—right from your browser 
 
 ---
 
+## ⚡ Why is it blazing fast & scalable?
+
+**log-streamer** is engineered for high performance and scalability:
+
+- **Powered by [fasthttp](https://github.com/valyala/fasthttp):** Uses one of the fastest HTTP libraries in Go, delivering low-latency, high-throughput request handling.
+- **Efficient, buffered file reading:** Reads logs line-by-line with minimal memory usage, even for huge files, using Go's `bufio.Scanner` and direct file seeking.
+- **Partial and ranged reads:** Only the required log segments are read and streamed, reducing I/O and memory footprint.
+- **Streaming from object storage:** Supports MinIO backend with ranged GETs, fetching only the necessary bytes from distributed storage.
+- **Stateless, concurrent design:** Each request is handled independently, leveraging Go's lightweight goroutines for massive concurrency and easy horizontal scaling.
+- **Transparent compression:** HTTP responses are automatically compressed for faster delivery.
+- **Minimal dependencies:** No heavy frameworks—just fast, direct Go code.
+
+This architecture ensures log-streamer can handle high request volumes, large files, and real-time streaming with ease.
+
+---
+
 ![Go Version](https://img.shields.io/badge/Go-1.18%2B-blue?logo=go)
 ![Dockerized](https://img.shields.io/badge/Docker-ready-blue?logo=docker)
 ![MIT License](https://img.shields.io/badge/license-MIT-green)
